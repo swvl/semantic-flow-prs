@@ -17,9 +17,13 @@
     "test": "jest"
   },
   "dependencies": {
+    "@commitlint/lint": "^12.1.1",
+    "conventional-commit-types": "^3.0.0",
+    "conventional-commits-parser": "^3.2.1",
     "probot": "^11.0.1"
   },
   "devDependencies": {
+    "@types/conventional-commits-parser": "^3.0.1",
     "@types/jest": "^26.0.19",
     "@types/node": "^14.14.19",
     "jest": "^26.6.3",
