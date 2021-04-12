@@ -1,6 +1,6 @@
 {
   "name": "semantic-flow-prs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "A Probot app",
   "author": "Ahmad Abdelaziz <a.3b3ziz@gmail.com>",
