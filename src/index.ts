@@ -14,19 +14,6 @@ export = (app: Probot) => {
     const isSemanticType = Object.keys(types).includes(type || '')
     const state = isBaseMaintenanceBranch && type === 'feat' ? 'failure' : isSemanticType ? 'success' : 'failure'
 
-    // console.log('===================================')
-    // console.log(state)
-    // console.log('===================================')
-    // console.log('type: ', type, ' ref: ', ref, ' isBaseMaintenanceBranch: ', isBaseMaintenanceBranch, ' isSemanticType: ', isSemanticType)
-    // console.log('===================================')
-    // console.log({
-    //   sha,
-    //   state,
-    //   owner,
-    //   repo
-    // })
-    // console.log('===================================')
-
     const result = await context.octokit.repos.createCommitStatus({
       sha,
       state,
