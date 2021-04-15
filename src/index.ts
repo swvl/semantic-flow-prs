@@ -1,25 +1,33 @@
 import { Probot } from "probot";
-import { types } from 'conventional-commit-types';
-import { sync } from 'conventional-commits-parser';
+import { CommitState, getSquashMessageType, validateMessageType } from "./utils";
 
 export = (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.edited', 'pull_request.synchronize'], async (context) => {
     const {
-      pull_request: { title, head: { sha }, base: { ref } },
+      pull_request: { title, number: pull_number, head: { sha }, base: { ref } },
       repository: { owner: { login: owner }, name: repo }
-    } = context.payload
+    } = context.payload;
 
-    const isBaseMaintenanceBranch = /([0-9])+?\.([0-9])+\.x/.test(ref)    
-    const { type } = sync(title)
-    const isSemanticType = Object.keys(types).includes(type || '')
-    const state = isBaseMaintenanceBranch && type === 'feat' ? 'failure' : isSemanticType ? 'success' : 'failure'
+    const commits = await context.octokit.rest.pulls.listCommits({
+      owner,
+      repo,
+      pull_number,
+    });
+
+    const { type, source } = getSquashMessageType(title, commits)
+    const message = { type, ref, source }
+
+    
+    const { state: commitState, description } = validateMessageType(message)
+    const state = commitState as CommitState;
 
     const result = await context.octokit.repos.createCommitStatus({
       sha,
-      state,
       owner,
-      repo
-    })
+      repo,
+      state,
+      description
+    });
     return result
   });
 };
