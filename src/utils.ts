@@ -21,11 +21,6 @@ export const isBaseMaintenanceBranch = (ref: string): boolean => /^(\d+)\.(\d+)\
 export const getSquashMessageType = (prTitle: string, commits: any) => {
   const isOneCommit = commits?.data?.length === 1
   const source = isOneCommit ? 'commit' : 'pr'
-  console.log('===================================')
-  console.log(commits?.data[0]?.commit?.message)
-  console.log('===================================')
-  console.log(prTitle)
-  console.log('===================================')
   const message = isOneCommit ? commits?.data[0]?.commit?.message : prTitle
   const { type } = sync(message);
   return { type, source }
