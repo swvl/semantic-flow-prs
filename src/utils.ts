@@ -1,42 +1,59 @@
-import { cond, stubTrue, conforms, constant, isEqual, get } from 'lodash';
+import { cond, stubTrue, conforms, constant, isEqual, negate } from 'lodash';
 import { types } from 'conventional-commit-types';
 import { sync } from 'conventional-commits-parser';
+import { Endpoints } from '@octokit/types';
 
 export type CommitState = "error" | "failure" | "pending" | "success";
+type Commits = Endpoints["GET /repos/{owner}/{repo}/pulls/{pull_number}/commits"]['response']['data']
 
-export const conventionalCommitTypes: (string | null | undefined)[] = [
+const conventionalCommitTypes: (string | null | undefined)[] = [
   ...Object.keys(types),
   'hotfeat' //TODO: get from context config
 ]
 
-export const not = (callback: Function) => (value: boolean) => !callback(value)
+const isMergeCommit = (message: string) => message.startsWith('Merge')
+const isRevertCommit = (message: string) => message.startsWith('Revert')
 
-export const isSemanticType = (type: string): boolean => conventionalCommitTypes.includes(type)
-export const isEqualFeat = (type: string) => isEqual(type, 'feat')
-export const isEqualPR = (source: string) => isEqual(source, 'pr')
+const nonMergeOrRevertCommits = (commits: Commits) => commits?.map(commit => commit.commit.message)
+  .filter(negate(isMergeCommit))
+  .filter(negate(isRevertCommit))
 
+const isSemanticType = (type: string): boolean => conventionalCommitTypes.includes(type)
+const isEqualFeat = (type: string) => isEqual(type, 'feat')
+const isEqualPR = (source: string) => isEqual(source, 'pr')
+const isBaseMaintenanceBranch = (ref: string): boolean => /^(\d+)\.(\d+)\.x$/.test(ref)
 
-export const isBaseMaintenanceBranch = (ref: string): boolean => /^(\d+)\.(\d+)\.x$/.test(ref)
+const isOneCommit = (commits: string[]) => commits.length === 1
 
-export const getSquashMessageType = (prTitle: string, commits: any) => {
-  const isOneCommit = commits?.data?.length === 1
-  const source = isOneCommit ? 'commit' : 'pr'
-  const message = isOneCommit ? commits?.data[0]?.commit?.message : prTitle
-  const { type } = sync(message);
+const extractCommitMessage = (prTitle: string, filteredCommits: string[]) => 
+  isOneCommit(filteredCommits) ? filteredCommits[0] : prTitle
+
+const extractCommitSource = (filteredCommits: string[]) => 
+  isOneCommit(filteredCommits) ? 'commit' : 'pr'
+
+const extractCommitType = (message: string) => sync(message).type
+
+export const getSquashMessageType = (prTitle: string, commits: Commits) => {
+  const filteredCommits = nonMergeOrRevertCommits(commits)
+  const type = extractCommitType(extractCommitMessage(prTitle, filteredCommits))
+  const source = extractCommitSource(filteredCommits)
   return { type, source }
 }
 
-export const messageValidationOptions = {
-  FEAT: constant({ state: 'failure', description: 'Disallowed feat type on a maintenance branch' }),
-  NOT_SEMANTIC_PR: constant({ state: 'failure', description: 'The pr title does not have semantic type' }),
-  NOT_SEMANTIC_COMMIT: constant({ state: 'failure', description: 'The commit does not have semantic type' }),
-  READY: constant({ state: 'success', description: 'ready to be squashed' })
+const validationMessages = {
+  FEAT: { state: 'failure', description: 'Disallowed feat type on a maintenance branch' },
+  NOT_SEMANTIC_PR: { state: 'failure', description: 'The pr title does not have semantic type' },
+  NOT_SEMANTIC_COMMIT: { state: 'failure', description: 'The commit does not have semantic type' },
+  READY: { state: 'success', description: 'ready to be squashed' }
 }
 
-export const validateMessageType = cond([
-  [conforms({ type: isEqualFeat, ref: isBaseMaintenanceBranch }), get(messageValidationOptions, 'FEAT')],
-  [conforms({ type: not(isSemanticType), source: isEqualPR, ref: stubTrue }), get(messageValidationOptions, 'NOT_SEMANTIC_PR')],
-  [conforms({ type: not(isSemanticType), source: not(isEqualPR), ref: stubTrue }), get(messageValidationOptions, 'NOT_SEMANTIC_COMMIT')],
-  [stubTrue, get(messageValidationOptions, 'READY')]
-]);
+const isFeatureOnMaintenanceBranch = conforms({ type: isEqualFeat, ref: isBaseMaintenanceBranch })
+const isNotSemanticPRTitle = conforms({ type: negate(isSemanticType), source: isEqualPR, ref: stubTrue })
+const isNotSemanticCommit = conforms({ type: negate(isSemanticType), source: negate(isEqualPR), ref: stubTrue })
 
+export const validateMessageType = cond([
+  [isFeatureOnMaintenanceBranch, constant(validationMessages.FEAT)],
+  [isNotSemanticPRTitle, constant(validationMessages.NOT_SEMANTIC_PR)],
+  [isNotSemanticCommit, constant(validationMessages.NOT_SEMANTIC_COMMIT)],
+  [stubTrue, constant(validationMessages.READY)]
+]);

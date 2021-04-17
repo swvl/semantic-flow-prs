@@ -8,13 +8,13 @@ export = (app: Probot) => {
       repository: { owner: { login: owner }, name: repo }
     } = context.payload;
 
-    const commits = await context.octokit.rest.pulls.listCommits({
+    const commits = await context.octokit.pulls.listCommits({
       owner,
       repo,
       pull_number,
     });
 
-    const { type, source } = getSquashMessageType(title, commits)
+    const { type, source } = getSquashMessageType(title, commits.data)
     const message = { type, ref, source }
 
     
