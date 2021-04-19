@@ -1,5 +1,5 @@
 import { Probot } from "probot";
-import { CommitState, getSquashMessageType, validateMessageType } from "./utils";
+import { CommitState, isSemanticPR } from "./utils";
 
 export = (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.edited', 'pull_request.synchronize'], async (context) => {
@@ -14,12 +14,7 @@ export = (app: Probot) => {
       pull_number,
     });
 
-    const { type, source } = getSquashMessageType(title, commits.data)
-    const message = { type, ref, source }
-
-    
-    const { state: commitState, description } = validateMessageType(message)
-    const state = commitState as CommitState;
+    const { state, description } = isSemanticPR(title, commits.data, ref)
 
     const result = await context.octokit.repos.createCommitStatus({
       sha,
