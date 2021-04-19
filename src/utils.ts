@@ -4,6 +4,7 @@ import { sync } from 'conventional-commits-parser';
 import { Endpoints } from '@octokit/types';
 
 export type CommitState = "error" | "failure" | "pending" | "success";
+
 type Commits = Endpoints["GET /repos/{owner}/{repo}/pulls/{pull_number}/commits"]['response']['data']
 
 const conventionalCommitTypes: (string | null | undefined)[] = [
@@ -33,7 +34,7 @@ const extractCommitSource = (filteredCommits: string[]) =>
 
 const extractCommitType = (message: string) => sync(message).type
 
-export const getSquashMessageType = (prTitle: string, commits: Commits) => {
+const getSquashMessageType = (prTitle: string, commits: Commits) => {
   const filteredCommits = nonMergeOrRevertCommits(commits)
   const type = extractCommitType(extractCommitMessage(prTitle, filteredCommits))
   const source = extractCommitSource(filteredCommits)
@@ -51,9 +52,20 @@ const isFeatureOnMaintenanceBranch = conforms({ type: isEqualFeat, ref: isBaseMa
 const isNotSemanticPRTitle = conforms({ type: negate(isSemanticType), source: isEqualPR, ref: stubTrue })
 const isNotSemanticCommit = conforms({ type: negate(isSemanticType), source: negate(isEqualPR), ref: stubTrue })
 
-export const validateMessageType = cond([
+const validateMessageType = cond([
   [isFeatureOnMaintenanceBranch, constant(validationMessages.FEAT)],
   [isNotSemanticPRTitle, constant(validationMessages.NOT_SEMANTIC_PR)],
   [isNotSemanticCommit, constant(validationMessages.NOT_SEMANTIC_COMMIT)],
   [stubTrue, constant(validationMessages.READY)]
 ]);
+
+export isSemanticPR = (title, commits, ref) => {
+  const { type, source } = getSquashMessageType(title, commits)
+  const message = { type, ref, source }
+
+  
+  const { state: commitState, description } = validateMessageType(message)
+  const state = commitState as CommitState;
+
+  return {state, description}
+}
