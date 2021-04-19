@@ -13,10 +13,20 @@ const conventionalCommitTypes: (string | null | undefined)[] = [
 
 const isMergeCommit = (message: string) => message.startsWith('Merge')
 const isRevertCommit = (message: string) => message.startsWith('Revert')
+const isMergeOrRevertCommit = (message: string) => isMergeCommit(message) || isRevertCommit(message)
 
-const nonMergeOrRevertCommits = (commits: Commits) => commits?.map(commit => commit.commit.message)
-  .filter(negate(isMergeCommit))
-  .filter(negate(isRevertCommit))
+
+/* alter: 
+const or = (func1, func2) => arg => func1(arg) || func2(arg)
+const isMergeOrRevertCommit = or(isMergeCommit, isRevertCommit)
+*/
+
+const filterCommits = filterFunc => (commits: Commits) => commits?.map(commit => commit.commit.message)
+  .filter(filterFunc)
+
+/*
+also: getAcceptedCommits = filterCommits(negate(isMergeOrRevertCommit))
+*/
 
 const isSemanticType = (type: string): boolean => conventionalCommitTypes.includes(type)
 const isEqualFeat = (type: string) => isEqual(type, 'feat')
@@ -34,7 +44,7 @@ const extractCommitSource = (filteredCommits: string[]) =>
 const extractCommitType = (message: string) => sync(message).type
 
 export const getSquashMessageType = (prTitle: string, commits: Commits) => {
-  const filteredCommits = nonMergeOrRevertCommits(commits)
+  const filteredCommits = filterCommits(negate(isMergeOrRevertCommit))(commits)
   const type = extractCommitType(extractCommitMessage(prTitle, filteredCommits))
   const source = extractCommitSource(filteredCommits)
   return { type, source }
