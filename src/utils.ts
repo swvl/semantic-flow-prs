@@ -4,6 +4,7 @@ import { sync } from 'conventional-commits-parser';
 import { Endpoints } from '@octokit/types';
 
 export type CommitState = "error" | "failure" | "pending" | "success";
+
 type Commits = Endpoints["GET /repos/{owner}/{repo}/pulls/{pull_number}/commits"]['response']['data']
 
 const conventionalCommitTypes: (string | null | undefined)[] = [
@@ -25,15 +26,15 @@ const isBaseMaintenanceBranch = (ref: string): boolean => /^(\d+)\.(\d+)\.x$/.te
 
 const isOneCommit = (commits: string[]) => commits.length === 1
 
-const extractCommitMessage = (prTitle: string, filteredCommits: string[]) => 
+const extractCommitMessage = (prTitle: string, filteredCommits: string[]) =>
   isOneCommit(filteredCommits) ? filteredCommits[0] : prTitle
 
-const extractCommitSource = (filteredCommits: string[]) => 
+const extractCommitSource = (filteredCommits: string[]) =>
   isOneCommit(filteredCommits) ? 'commit' : 'pr'
 
 const extractCommitType = (message: string) => sync(message).type
 
-export const getSquashMessageType = (prTitle: string, commits: Commits) => {
+const getSquashMessageType = (prTitle: string, commits: Commits) => {
   const filteredCommits = nonMergeOrRevertCommits(commits)
   const type = extractCommitType(extractCommitMessage(prTitle, filteredCommits))
   const source = extractCommitSource(filteredCommits)
@@ -51,9 +52,19 @@ const isFeatureOnMaintenanceBranch = conforms({ type: isEqualFeat, ref: isBaseMa
 const isNotSemanticPRTitle = conforms({ type: negate(isSemanticType), source: isEqualPR, ref: stubTrue })
 const isNotSemanticCommit = conforms({ type: negate(isSemanticType), source: negate(isEqualPR), ref: stubTrue })
 
-export const validateMessageType = cond([
+const validateMessageType = cond([
   [isFeatureOnMaintenanceBranch, constant(validationMessages.FEAT)],
   [isNotSemanticPRTitle, constant(validationMessages.NOT_SEMANTIC_PR)],
   [isNotSemanticCommit, constant(validationMessages.NOT_SEMANTIC_COMMIT)],
   [stubTrue, constant(validationMessages.READY)]
 ]);
+
+export const isSemanticPR = (title: string, commits: any, ref: string) => {
+  const { type, source } = getSquashMessageType(title, commits)
+  const message = { type, ref, source }
+
+  const { state: commitState, description } = validateMessageType(message)
+  const state = commitState as CommitState;
+
+  return { state, description }
+}
