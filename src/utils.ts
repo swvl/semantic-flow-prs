@@ -26,10 +26,10 @@ const isBaseMaintenanceBranch = (ref: string): boolean => /^(\d+)\.(\d+)\.x$/.te
 
 const isOneCommit = (commits: string[]) => commits.length === 1
 
-const extractCommitMessage = (prTitle: string, filteredCommits: string[]) => 
+const extractCommitMessage = (prTitle: string, filteredCommits: string[]) =>
   isOneCommit(filteredCommits) ? filteredCommits[0] : prTitle
 
-const extractCommitSource = (filteredCommits: string[]) => 
+const extractCommitSource = (filteredCommits: string[]) =>
   isOneCommit(filteredCommits) ? 'commit' : 'pr'
 
 const extractCommitType = (message: string) => sync(message).type
@@ -59,13 +59,12 @@ const validateMessageType = cond([
   [stubTrue, constant(validationMessages.READY)]
 ]);
 
-export isSemanticPR = (title, commits, ref) => {
+export const isSemanticPR = (title: string, commits: any, ref: string) => {
   const { type, source } = getSquashMessageType(title, commits)
   const message = { type, ref, source }
 
-  
   const { state: commitState, description } = validateMessageType(message)
   const state = commitState as CommitState;
 
-  return {state, description}
+  return { state, description }
 }
