@@ -1,5 +1,6 @@
 import { Probot } from "probot";
-import { CommitState, isSemanticPR } from "./utils";
+import { test } from "./test";
+import { isSemanticPR } from "./utils";
 
 export = (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.edited', 'pull_request.synchronize'], async (context) => {
@@ -15,6 +16,8 @@ export = (app: Probot) => {
     });
 
     const { state, description } = isSemanticPR(title, commits.data, ref)
+
+    test()
 
     const result = await context.octokit.repos.createCommitStatus({
       sha,
