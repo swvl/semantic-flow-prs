@@ -22,7 +22,7 @@ const or = (func1, func2) => arg => func1(arg) || func2(arg)
 const isMergeOrRevertCommit = or(isMergeCommit, isRevertCommit)
 */
 
-const filterCommits = filterFunc => (commits: Commits) => commits?.map(commit => commit.commit.message)
+const filterCommits = (filterFunc: (value: string) => boolean ) => (commits: Commits) => commits?.map(commit => commit.commit.message)
   .filter(filterFunc)
 
 /*
