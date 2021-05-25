@@ -21,7 +21,8 @@ export = (app: Probot) => {
       owner,
       repo,
       state,
-      description
+      description,
+      context: 'Semantic Flow PRs'
     });
     return result
   });
