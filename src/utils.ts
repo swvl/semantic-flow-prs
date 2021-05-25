@@ -51,11 +51,15 @@ const getSquashMessageType = (prTitle: string, commits: Commits) => {
   return { type, source }
 }
 
+const validationMessage = (state: CommitState) => (description: string) => ({ state, description })
+const failure = validationMessage('failure')
+const success = validationMessage('success')
+
 const validationMessages = {
-  FEAT: { state: 'failure', description: 'Disallowed feat type on a maintenance branch' },
-  NOT_SEMANTIC_PR: { state: 'failure', description: 'The pr title does not have semantic type' },
-  NOT_SEMANTIC_COMMIT: { state: 'failure', description: 'The commit does not have semantic type' },
-  READY: { state: 'success', description: 'ready to be squashed' }
+  DISALLOWED_FEAT: failure('Disallowed feat type on a maintenance branch'),
+  NOT_SEMANTIC_PR: failure('The PR title does not have semantic type'),
+  NOT_SEMANTIC_COMMIT: failure('The commit message does not have semantic type'),
+  READY: success('Ready to be squashed'),
 }
 
 const isFeatureOnMaintenanceBranch = conforms({ type: isEqualFeat, ref: isBaseMaintenanceBranch })
@@ -63,7 +67,7 @@ const isNotSemanticPRTitle = conforms({ type: negate(isSemanticType), source: is
 const isNotSemanticCommit = conforms({ type: negate(isSemanticType), source: negate(isEqualPR), ref: stubTrue })
 
 const validateMessageType = cond([
-  [isFeatureOnMaintenanceBranch, constant(validationMessages.FEAT)],
+  [isFeatureOnMaintenanceBranch, constant(validationMessages.DISALLOWED_FEAT)],
   [isNotSemanticPRTitle, constant(validationMessages.NOT_SEMANTIC_PR)],
   [isNotSemanticCommit, constant(validationMessages.NOT_SEMANTIC_COMMIT)],
   [stubTrue, constant(validationMessages.READY)]
