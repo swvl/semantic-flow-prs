@@ -1,6 +1,6 @@
 {
   "name": "semantic-flow-prs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "A Probot app",
   "author": "Ahmad Abdelaziz <a.3b3ziz@gmail.com>",
@@ -17,10 +17,17 @@
     "test": "jest"
   },
   "dependencies": {
+    "@commitlint/lint": "^12.1.1",
+    "conventional-commit-types": "^3.0.0",
+    "conventional-commits-parser": "^3.2.1",
+    "lodash": "^4.17.21",
     "probot": "^11.0.1"
   },
   "devDependencies": {
+    "@octokit/types": "^6.13.0",
+    "@types/conventional-commits-parser": "^3.0.1",
     "@types/jest": "^26.0.19",
+    "@types/lodash": "^4.14.168",
     "@types/node": "^14.14.19",
     "jest": "^26.6.3",
     "nock": "^13.0.5",
